@@ -104,7 +104,7 @@ async def on_message(msg):
                             p["raids"], p["wins"], p["pots_banked"]))
         await msg.channel.send("\n".join(lines))
     elif text == "!raid":
-        r = engine.raid(ident)
+        r = engine.raid(ident, name)
         if not r["ok"]:
             await msg.channel.send("⚔️ %s — raid refused: %s" % (name, r["error"]))
             return

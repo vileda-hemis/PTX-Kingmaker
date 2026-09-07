@@ -98,7 +98,15 @@ def current_T(c):
     b = max(0, chain_height() - int(_get(c, "since_height")))
     return max(T_MIN, min(T_MAX, T_BASE + T_PER_BLOCK * b + T_PER_POT * pot))
 
-def raid(identity):
+def _clean_name(name):
+    """A display name safe to commit on-chain: [A-Za-z0-9_-], max 16 bytes.
+    Empty result -> the by= field is simply omitted. Names are mutable, so the
+    committed name is who they were at raid time -- the ID in p= remains the
+    durable attribution."""
+    import re as _re
+    return _re.sub(r"[^A-Za-z0-9_-]", "", name or "")[:16]
+
+def raid(identity, name=None):
     """One raid: commit T+seq+raider into a signed roll, apply the outcome."""
     with _lock:
         now = int(time.time())
@@ -106,9 +114,10 @@ def raid(identity):
         season = _get(c, "season")
         t = current_T(c)
         rid = "km-" + uuid.uuid4().hex[:20]
+        n = _clean_name(name)
+        tag = "s%s:T=%d" % (season, t) + ((":by=" + n) if n else "")
         code, r = _rail("POST", "/v1/roll",
-                        {"request_id": rid, "identity": identity,
-                         "tag": "s%s:T=%d" % (season, t)})
+                        {"request_id": rid, "identity": identity, "tag": tag})
         if code != 200:
             c.close()
             return {"ok": False, "error": r.get("error", "rail error %d" % code)}

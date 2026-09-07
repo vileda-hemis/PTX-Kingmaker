@@ -40,8 +40,14 @@ The threshold, the raid's sequence number and the raider's identity are
 committed **into the signed round seed** via the roll's `game_id`:
 
 ```
-km:s<season>:T=<T>:q=<seq>:p=<identity>
+km:s<season>:T=<T>[:by=<name>]:q=<seq>:p=<identity>
 ```
+
+`by=` is the raider's display name at raid time — sanitised to `[A-Za-z0-9_-]`,
+max 16 bytes, present for readability only. Names are mutable and not unique;
+**`p=` carries the durable identity and is what attribution rests on.**
+(Added during the tuning season, before real play; the outcome rule and
+constants are unchanged.)
 
 The chain folds `game_id` into the seed the quorum signs before any result
 exists, so none of these values can be altered after the draw.
