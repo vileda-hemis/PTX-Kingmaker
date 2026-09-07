@@ -74,11 +74,13 @@ async def on_message(msg):
     elif text == "!throne":
         s = engine.status()
         if s["holder"]:
+            link = ("\nreign founded on-chain: %s/v2?q=%s" % (engine.EXPLORER, s["reign_txid"])) \
+                   if s.get("reign_txid") else ""
             await msg.channel.send("👑 **%s** holds the throne (for %s). Pot: **%d**. "
-                                   "Next raid succeeds on ≤ **%d**/%d (%.1f%%)."
+                                   "Next raid succeeds on ≤ **%d**/%d (%.1f%%).%s"
                                    % (await nick(s["holder"], msg.guild), fmt_s(s["held_for_s"]),
                                       s["pot"], s["T_next_raid"], engine.N,
-                                      100.0 * s["T_next_raid"] / engine.N))
+                                      100.0 * s["T_next_raid"] / engine.N, link))
         else:
             await msg.channel.send("The throne is **empty** — `!raid` claims it outright "
                                    "(still one committed roll). Pot: **%d**." % s["pot"])

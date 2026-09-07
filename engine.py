@@ -156,7 +156,12 @@ def status():
     holder, since = _get(c, "holder"), int(_get(c, "since"))
     s = {"season": _get(c, "season"), "holder": holder or None,
          "pot": int(_get(c, "pot")), "T_next_raid": current_T(c),
-         "held_for_s": (now - since) if holder else 0}
+         "held_for_s": (now - since) if holder else 0, "reign_txid": None}
+    if holder:
+        # the winning raid that started the current reign -- its on-chain receipt
+        r = c.execute("SELECT roll_txid FROM raids WHERE win=1 AND identity=? "
+                      "ORDER BY seq DESC LIMIT 1", (holder,)).fetchone()
+        if r: s["reign_txid"] = r[0]
     c.close(); return s
 
 def leaderboard(limit=10):
