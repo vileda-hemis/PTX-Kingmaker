@@ -15,6 +15,25 @@ intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
 
+_names = {}
+async def nick(identity, guild):
+    """discord:<id> -> display name. Cache first, guild cache second, one API
+    fetch as last resort; the raw id only if Discord cannot answer. Identities
+    on chain and in the ledger stay numeric -- this is display only."""
+    if not identity.startswith("discord:"):
+        return identity
+    uid = identity.split(":", 1)[1]
+    if uid in _names:
+        return _names[uid]
+    name = None
+    try:
+        m = guild.get_member(int(uid)) if guild else None
+        name = m.display_name if m else (await client.fetch_user(int(uid))).display_name
+    except Exception:
+        pass
+    _names[uid] = name or uid
+    return _names[uid]
+
 def fmt_s(s):
     h, m = divmod(s // 60, 60)
     return "%dh %02dm" % (h, m) if h else "%dm %02ds" % (m, s % 60)
@@ -42,7 +61,7 @@ async def on_message(msg):
         if s["holder"]:
             await msg.channel.send("👑 **%s** holds the throne (for %s). Pot: **%d**. "
                                    "Next raid succeeds on ≤ **%d**/%d (%.1f%%)."
-                                   % (s["holder"].split(":")[-1], fmt_s(s["held_for_s"]),
+                                   % (await nick(s["holder"], msg.guild), fmt_s(s["held_for_s"]),
                                       s["pot"], s["T_next_raid"], engine.N,
                                       100.0 * s["T_next_raid"] / engine.N))
         else:
@@ -64,7 +83,7 @@ async def on_message(msg):
         lines = ["**Season %s — time on throne**" % engine.status()["season"]]
         for i, p in enumerate(rows, 1):
             lines.append("%d. %s — %s · %d raids · %d wins · %d banked"
-                         % (i, p["identity"].split(":")[-1], fmt_s(p["tenure_s"]),
+                         % (i, await nick(p["identity"], msg.guild), fmt_s(p["tenure_s"]),
                             p["raids"], p["wins"], p["pots_banked"]))
         await msg.channel.send("\n".join(lines))
     elif text == "!raid":
@@ -73,7 +92,7 @@ async def on_message(msg):
             await msg.channel.send("⚔️ %s — raid refused: %s" % (name, r["error"]))
             return
         if r["win"]:
-            deth = (" **%s is dethroned!**" % r["dethroned"].split(":")[-1]) if r["dethroned"] else ""
+            deth = (" **%s is dethroned!**" % await nick(r["dethroned"], msg.guild)) if r["dethroned"] else ""
             await msg.channel.send("⚔️ **%s rolls %d ≤ %d — TAKES THE THRONE!**%s\n"
                                    "roll `q=%d` · verify: %s"
                                    % (name, r["result"], r["T"], deth, r["seq"], r["verify"]))
