@@ -43,7 +43,12 @@ def chain_height():
     if now - _height_cache["t"] < 30 and _height_cache["h"]:
         return _height_cache["h"]
     try:
-        with urllib.request.urlopen(EXPLORER + "/v2/api/v1/observe/health", timeout=8) as r:
+        # A User-Agent is load-bearing: the public verifier sits behind Cloudflare,
+        # which 403s bare python-urllib (ODC-117). Without this header the fetch
+        # failed silently, chain_height() returned 0, and the tenure tilt was dead.
+        hreq = urllib.request.Request(EXPLORER + "/v2/api/v1/observe/health",
+                                      headers={"User-Agent": "kingmaker/1.0"})
+        with urllib.request.urlopen(hreq, timeout=8) as r:
             h = json.load(r).get("height")
         if h:
             _height_cache.update(t=now, h=h)
@@ -111,6 +116,14 @@ def raid(identity, name=None):
     with _lock:
         now = int(time.time())
         c = db()
+        # No self-raid. A winning self-raid resets the tilt clock (a free
+        # defence); a losing one feeds a pot the holder can bank themselves.
+        # Either outcome favours the holder, so the move cannot exist. The
+        # holder's only choices are the designed dilemma: sit, or !take.
+        if _get(c, "holder") == identity:
+            c.close()
+            return {"ok": False, "error": "you already hold the throne — "
+                    "sit and build tenure, or !take the pot and abandon it"}
         season = _get(c, "season")
         t = current_T(c)
         rid = "km-" + uuid.uuid4().hex[:20]
