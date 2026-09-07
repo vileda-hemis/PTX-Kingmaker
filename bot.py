@@ -41,7 +41,17 @@ def fmt_s(s):
 HELP = ("**Kingmaker** — one throne, one pot.\n"
         "`!raid` challenge the throne (one roll, verifiable) · `!throne` status · "
         "`!pot` the pot · `!take` bank the pot and abandon the throne · "
-        "`!top` leaderboard (time on throne) · `!help` this")
+        "`!top` leaderboard (time on throne) · `!rules` how it works · `!help` this")
+
+RULES = ("**How it works.** One roll, 1–10000: you win if it lands ≤ **T**. "
+         "`!throne` shows T before you raid, and T is committed on-chain before the draw — "
+         "it cannot be changed after. A fresh throne defends at ~20%; every block held and "
+         "every point in the pot tilts the dice toward challengers, up to 85%. "
+         "Failed raids feed the pot. `!take` banks the pot **and abandons the throne** — "
+         "loot or status, never both. Tenure accrues while you're away; seasons reset the board. "
+         "Every raid links to an independent verifier — if the game cheated, the chain would "
+         "convict it.\n**Raids are free during the tuning season.** Real play (top-up once, "
+         "raid instantly against your roll count) opens later — don't send HMS anywhere yet.")
 
 @client.event
 async def on_ready():
@@ -56,6 +66,11 @@ async def on_message(msg):
     name = msg.author.display_name
     if text == "!help":
         await msg.channel.send(HELP)
+    elif text == "!rules":
+        await msg.channel.send(RULES)
+    elif text == "!deposit":
+        await msg.channel.send("Raids are **free** during the tuning season — deposits open "
+                               "when real play does, and it will be announced here first.")
     elif text == "!throne":
         s = engine.status()
         if s["holder"]:
